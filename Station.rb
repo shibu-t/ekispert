@@ -1,7 +1,7 @@
 require 'net/http';
 require 'uri'
 require 'json'
-require '~/ruby/ekispert/Endpoint.rb'
+require_relative './Endpoint.rb'
 
 class Station
 
