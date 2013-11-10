@@ -31,5 +31,3 @@ class Station
 
 end
 
-sta = Station.new("東京")
-p sta.getResponse

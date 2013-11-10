@@ -1,17 +1,22 @@
 require 'net/http';
 require 'uri'
 require 'json'
-require '~/ruby/ekispert/Endpoint.rb'
+require_relative 'Station'
+require_relative 'Endpoint'
 
-class Station
+QUERY_FROM = '&from='
+QUERY_TO   = '&to='
 
-    def initialize(name)
-        @name = name
+class Search
+
+    def initialize(from_station, to_station)
+        @from_station = from_station
+        @to_station = to_station
     end
 
-    def getUrl
-        station_url = Endpoint.getStationUrl
-        url = station_url + @name
+    def getUrl(from_code, to_code)
+        search_url = Endpoint.getSearchUrl
+        url = search_url + QUERY_FROM + from_code + QUERY_TO + to_code
         return url
     end
 
@@ -21,15 +26,43 @@ class Station
         return uri
     end
 
-    def getResponse
-        url = getUrl
+    def getStationCode(station_name)
+        sta_obj = Station.new(station_name)
+        stations = sta_obj.getResponse["ResultSet"]["Point"]
+
+        # 候補が1つのときは配列ではなくhashで返ってくるため
+        if (stations.is_a?(Hash))
+            first_station = stations
+        else
+            first_station = stations[0]
+        end
+
+        if (first_station.nil?)
+            return ''
+        end
+
+        return first_station["Station"]["code"]
+    end
+
+    def main
+        from_station_code = getStationCode(@from_station)
+        to_station_code   = getStationCode(@to_station)
+        if (from_station_code.empty? || to_station_code.empty?)
+            return
+        end
+
+        url = getUrl(from_station_code, to_station_code)
         uri = getUri(url)
         body = Net::HTTP.get_response(uri).body;
         json = JSON.parse(body);
-        return json
+        resource_uri = json["ResultSet"]["ResourceURI"]
+        if (resource_uri.nil?)
+            return
+        end
+        return resource_uri
     end
 
 end
 
-sta = Station.new("東京")
-p sta.getResponse
+sta = Search.new("渋谷", "東京")
+p sta.main()
